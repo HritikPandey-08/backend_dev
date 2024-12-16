@@ -3,4 +3,4 @@ import connectDB from "./db/index.js";
 
 dotenv.config();
 
-connectDB()
+connectDB();
