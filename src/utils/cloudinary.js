@@ -13,9 +13,11 @@ const uploadFileOnCloudinary = async (localFilePath) => {
 
     try {
 
-        console.log("Local file path of  cloudinary function is ",localFilePath);
+        console.log("Local file path of  cloudinary function is ", localFilePath);
 
         if (!localFilePath) return null
+
+
 
         //upload file on cloudinary
         const uploadedFile = await cloudinary.uploader.upload(
@@ -38,4 +40,18 @@ const uploadFileOnCloudinary = async (localFilePath) => {
 
 }
 
-export { uploadFileOnCloudinary }
+// Delete old file from cloudinary
+const deleteFileFromCloudinary = async (fileUrl) => {
+    if (!fileUrl) return null
+
+    const publicId = fileUrl.split("/").pop().split(".")[0]; // Extract the public ID from the URL
+    await cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) {
+            throw new Error("Error deleting file from Cloudinary");
+        }
+        return result;
+    });
+
+}
+
+export { uploadFileOnCloudinary, deleteFileFromCloudinary }
