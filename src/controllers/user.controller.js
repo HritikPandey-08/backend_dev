@@ -5,7 +5,6 @@ import { User } from "../models/user.models.js"
 import { uploadFileOnCloudinary, deleteFileFromCloudinary } from "../utils/cloudinary.js";
 
 import jwt from "jsonwebtoken";
-import { subscribe } from "diagnostics_channel";
 
 // Generate refresh and access token function
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -398,77 +397,127 @@ const getUserChannelProfile = aysncHandler(async (req, res) => {
         throw new ApiError(404, "Username Not found");
     }
 
-   const channel = await User.aggregate([
+    const channel = await User.aggregate([
         {
-            $match : {
-                username : username?.toLowerCase()
+            $match: {
+                username: username?.toLowerCase()
             }
         },
         {
-            $lookup : {
-                from : "Subscription",
-                localField : "_id",
-                foreignField : "channel",
-                as : "subscribers"
+            $lookup: {
+                from: "Subscription",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
             }
         },
         {
-            $lookup : {
-                from : "Subscription",
-                localField : "_id",
-                foreignField : "subscriber",
-                as : "subscribedTo"
+            $lookup: {
+                from: "Subscription",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo"
             }
         },
         {
-            $addFields : {
-                subscribersCount : {
-                    $size : "$subscribers"
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
                 },
-                channelsSubscribedToCount : {
-                    $size : "$subscribedTo"
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
                 },
-                isSubscribed : {
-                    $cond : {
-                        if : {$in : [req.user?._id, "$subscribers.subscriber"]},
-                        then : true,
-                        else : false
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
                     }
                 }
             }
         },
 
         {
-            $project : {
-                fullName : 1,
-                email : 1,
-                username : 1,
-                subscribersCount : 1,
-                channelsSubscribedToCount : 1,
-                isSubscribed : 1,
-                avatar  : 1,
-                coverImage : 1
-                
+            $project: {
+                fullName: 1,
+                email: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1
+
 
             }
         }
     ]);
 
-    if(!channel?.length){
-        throw new ApiError(404,"Channel does not exists")
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel does not exists")
     }
 
     console.log(channel);
 
-    return  res
-    .status(200)
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, channel[0], "User channel profile data fetched successfully")
+        )
+});
+
+
+const getWatchHistory = aysncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match : {
+                _id : new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup : {
+                from : "videos",
+                localField : "watchHistory",
+                foreignField : "_id",
+                as : "watchHistory",
+                pipeline : [
+                    {
+                        $lookup : {
+                            from : "users",
+                            localField : "owner",
+                            foreignField : "_id",
+                            as : "owner",
+                            pipeline : [
+                                {
+                                    $project : {
+                                        fullName : 1,
+                                        username : 1,
+                                        avatar : 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields : {
+                            owner : {
+                                $first : "$owner"
+                            }
+                        } 
+                    }
+                ]
+            }
+        }
+
+    ])
+
+    return res.status(200)
     .json(
-        new ApiResponse(200,channel[0],"User channel profile data fetched successfully")
+        new ApiResponse(
+            200,
+            user[0].WatchHistory
+        )
     )
-
-
-
-
 })
 
 export {
@@ -481,5 +530,6 @@ export {
     updateUserDetail,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
