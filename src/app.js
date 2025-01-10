@@ -27,8 +27,11 @@ app.use(express.static("public"))
 app.use(cookirParse())
 
 
-import userRoutes from "./routes/user.routes.js";
+import userRouter from "./routes/user.routes.js";
+import healthcheckRouter from "./routes/healthcheck.routes.js";
 
-app.use("/api/v1/user",userRoutes)
+app.use("/api/v1/user",userRouter);
+app.use("/api/v1/healthcheck", healthcheckRouter)
+
 
 export {app}

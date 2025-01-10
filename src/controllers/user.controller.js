@@ -1,4 +1,4 @@
-import { aysncHandler } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.models.js"
@@ -38,7 +38,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 
 // User registration function
-const userRegister = aysncHandler(async (req, res) => {
+const userRegister = asyncHandler(async (req, res) => {
 
     // Get user details for frontend
     const { fullName, username, email, password } = req.body;
@@ -107,7 +107,7 @@ const userRegister = aysncHandler(async (req, res) => {
 
 
 // User Logged-in function 
-const userLoggedIn = aysncHandler(async (req, res) => {
+const userLoggedIn = asyncHandler(async (req, res) => {
 
     // Extract user data from request body
     const { email, username, password } = req.body
@@ -158,7 +158,7 @@ const userLoggedIn = aysncHandler(async (req, res) => {
 })
 
 // user logged-out function 
-const userLoggedOut = aysncHandler(
+const userLoggedOut = asyncHandler(
     async (req, res) => {
         await User.findByIdAndUpdate(req.user._id,
             {
@@ -190,7 +190,7 @@ const userLoggedOut = aysncHandler(
     });
 
 
-const refreshAccessToken = aysncHandler(async (req, res) => {
+const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
     if (!incomingRefreshToken) {
@@ -237,7 +237,7 @@ const refreshAccessToken = aysncHandler(async (req, res) => {
 });
 
 
-const changeCurrentPassword = aysncHandler(async (req, res) => {
+const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword, confirmPassword } = req.body;
 
 
@@ -271,7 +271,7 @@ const changeCurrentPassword = aysncHandler(async (req, res) => {
 
 });
 
-const getCurrentUser = aysncHandler(async (req, res) => {
+const getCurrentUser = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(
@@ -283,7 +283,7 @@ const getCurrentUser = aysncHandler(async (req, res) => {
 
 });
 
-const updateUserDetail = aysncHandler(async (req, res) => {
+const updateUserDetail = asyncHandler(async (req, res) => {
     const { fullName, email } = req.body;
     if (!fullName || !email) {
         throw new ApiError(400, "Please enter all details");
@@ -312,7 +312,7 @@ const updateUserDetail = aysncHandler(async (req, res) => {
         );
 })
 
-const updateUserCoverImage = aysncHandler(async (req, res) => {
+const updateUserCoverImage = asyncHandler(async (req, res) => {
     const coverImageLocalFile = req.file?.coverImage;
     if (!coverImageLocalFile) {
         throw new ApiError(400, "coverImage file not found");
@@ -350,7 +350,7 @@ const updateUserCoverImage = aysncHandler(async (req, res) => {
 
 });
 
-const updateUserAvatar = aysncHandler(async (req, res) => {
+const updateUserAvatar = asyncHandler(async (req, res) => {
     const avatarLocalFile = req.file?.path;
 
     if (!avatarLocalFile) {
@@ -391,7 +391,7 @@ const updateUserAvatar = aysncHandler(async (req, res) => {
 });
 
 
-const getUserChannelProfile = aysncHandler(async (req, res) => {
+const getUserChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params;
     if (!username?.trim()) {
         throw new ApiError(404, "Username Not found");
@@ -467,7 +467,7 @@ const getUserChannelProfile = aysncHandler(async (req, res) => {
 });
 
 
-const getWatchHistory = aysncHandler(async (req, res) => {
+const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match : {

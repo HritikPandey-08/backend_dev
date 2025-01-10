@@ -1,4 +1,4 @@
-const aysncHandler = (requestHandler) => {
+const asyncHandler = (requestHandler) => {
     return (req, res, next) => {
         Promise.resolve(requestHandler(req, res, next)).
             catch((err) => next(err))
@@ -6,9 +6,9 @@ const aysncHandler = (requestHandler) => {
 
 }
 
-export { aysncHandler };
+export { asyncHandler };
 
-const aysncHandler2 = (fn) => {
+const asyncHandler2 = (fn) => {
     async (req, res, next) => {
         try {
             await fn(req, res, next)
