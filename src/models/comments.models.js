@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
-import { aggregatePaginate } from "moongose/models/user_model";
 
 const commentSchema = new mongoose.Schema(
     {
