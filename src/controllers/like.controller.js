@@ -90,7 +90,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
         const populatedLike = await Like.findById(newLike._id)
             .populate('tweet', 'content')
-            .populate('likedBy', 'fullName email'); 
+            .populate('likedBy', 'fullName email');
 
 
         return res.status(201).json(new ApiResponse(201, populatedLike, "Like added",));
@@ -100,6 +100,53 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 )
 
 const getLikedVideos = asyncHandler(async (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        throw new ApiError(404, "User Id not found");
+    }
+
+    const likedVideo = await Like.aggregate([
+        {
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(userId),
+                video: { $exists: true },
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "videoDetails"
+            }
+        },
+        {
+            $unwind: "$videoDetails", // Flatten the video array
+        },
+        {
+            $project: {
+                _id: 0,
+                likedBy: 1,
+                VideoDetails: {
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    thumbnail: 1,
+                    views: 1,
+                    duration: 1,
+                    owner: 1,
+                },
+            },
+        },
+    ]);
+
+    return res.status(200)
+        .json(
+            new ApiResponse(
+                200,
+                likedVideo
+            )
+        )
 })
 
 

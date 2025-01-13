@@ -31,11 +31,13 @@ import userRouter from "./routes/user.routes.js";
 import healthcheckRouter from "./routes/healthcheck.routes.js";
 import tweetRouter from "./routes/tweet.routes.js";
 import likeRouter from "./routes/like.routes.js";
+import videoRouter from "./routes/video.routes.js";
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/healthcheck", healthcheckRouter);
 app.use("/api/v1/tweet", tweetRouter);
 app.use("/api/v1/likes", likeRouter);
+app.use("/api/v1/video", videoRouter);
 
 
 export { app }
