@@ -17,6 +17,11 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
     const userId = req.user?._id;
 
+    const existingName = await Playlist.findOne({ name: name, owner: userId });
+    if (existingName) {
+        throw new ApiError(400, "Playlist with this name already exists");
+    }
+
     const playlist = new Playlist({
         name: name,
         description: description,
@@ -25,8 +30,10 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
     await playlist.save();
 
+    const populatedPlaylist = await Playlist.findById(playlist._id).populate("owner", "fullName email");
+
     return res.status(200)
-        .json(new ApiResponse(201, "Playlist created"));
+        .json(new ApiResponse(201, populatedPlaylist, "Playlist created"));
 
 })
 
@@ -38,21 +45,53 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid user ID");
     }
 
-    // Fetch playlists for the user
-    const userPlaylists = await Playlist.find({ owner: userId })
-        .populate("videos", "title description") // Fetch video details (optional)
-        .populate("owner", "fullName email"); // Fetch owner details (optional)
+    // Fetch playlists for the user, along with the number of videos in each playlist
+    const userPlaylists = await Playlist.aggregate([
+        { $match: { owner: new mongoose.Types.ObjectId(userId) } }, // Match user playlists
+        {
+            $lookup: {
+                from: "videos", 
+                localField: "videos", 
+                foreignField: "_id", 
+                as: "videoDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            title: 1, 
+                        }
+                    }
+                ] 
+            }
+        },
+        {
+            $addFields: {
+                videoCount: { $size: "$videoDetails" } // Count the number of videos
+            }
+        },
+        {
+            $project: {
+                name: 1, // Return the name field
+                description: 1,
+                videoCount: 1, // Return the video count field
+                videoDetails: 1 // Return the videos field
+            }
+        }
+    ]);
 
     // Check if playlists exist
     if (userPlaylists.length === 0) {
         throw new ApiError(404, "No playlists found for this user");
     }
 
-    // Return response
+    // Fetch the total number of playlists the user has
+    const totalPlaylists = userPlaylists.length;
+
+    // Return response with totalPlaylists and video counts for each playlist
     return res.status(200).json(
-        new ApiResponse(200, userPlaylists, "Fetched user playlists successfully")
+        new ApiResponse(200, { totalPlaylists, userPlaylists }, "Fetched user playlists successfully")
     );
 });
+
 
 
 const getPlaylistById = asyncHandler(async (req, res) => {
@@ -166,20 +205,11 @@ const deletePlaylist = asyncHandler(async (req, res) => {
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const { playlistId } = req.params
-    const { name, description } = req.body
+    const { name, description } = req.body;
 
     // Validate playlist ID
     if (!isValidObjectId(playlistId)) {
         throw new ApiError(400, "Invalid playlist ID");
-    }
-
-    // Validate fields
-    if (!name || typeof name !== 'string' || name.trim() === "") {
-        throw new ApiError(400, "Name is required and cannot be empty");
-    }
-
-    if (!description || typeof description !== 'string' || description.trim() === "") {
-        throw new ApiError(400, "Description is required and cannot be empty");
     }
 
     // Find the playlist
@@ -188,10 +218,24 @@ const updatePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Playlist not found");
     }
 
-    // Update fields
-    playlist.name = name.trim();
-    playlist.description = description.trim();
+    // Update fields if provided
+    if (name && typeof name === 'string' && name.trim() !== "") {
 
+        if (name.trim() !== playlist.name) {
+            const existingName = await Playlist.findOne({ name: name.trim(), owner: req.user?._id });
+            if (existingName) {
+                throw new ApiError(400, "Playlist with this name already exists");
+            }
+            else {
+                playlist.name = name.trim();
+            }
+        }
+
+    }
+
+    if (description && typeof description === 'string' && description.trim() !== "") {
+        playlist.description = description.trim();
+    }
 
     await playlist.save();
 
@@ -199,6 +243,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, playlist, "Playlist updated successfully")
     );
+
 
 })
 

@@ -27,6 +27,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const matchConditions = {};
     if (videoId) {
         matchConditions.video = new mongoose.Types.ObjectId(videoId);
+        matchConditions.deletedAt = null;
     }
 
     const comments = await Comment.aggregate([
@@ -54,6 +55,12 @@ const getVideoComments = asyncHandler(async (req, res) => {
     // Prepare the response
     const total = comments[0]?.metadata[0]?.total || 0;
     const commentData = comments[0]?.data || [];
+
+    if (total === 0) {
+        return res.status(404).json(
+            new ApiResponse(404, null, "No comments found")
+        );
+    }
 
     return res.status(200).json(
         new ApiResponse(200, {
@@ -119,7 +126,7 @@ const updateComment = asyncHandler(async (req, res) => {
     }
 
     // Find comment owned by the user
-    const comment = await Comment.findOne({ _id: commentId, owner: req.user?._id });
+    const comment = await Comment.findOne({ _id: commentId, owner: req.user?._id, deletedAt: null });
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
@@ -147,7 +154,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     }
 
     // Find comment owned by the user
-    const comment = await Comment.findOne({ _id: commentId, owner: req.user?._id });
+    const comment = await Comment.findOne({ _id: commentId, owner: req.user?._id, deletedAt: null });
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }

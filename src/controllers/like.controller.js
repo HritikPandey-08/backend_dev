@@ -14,7 +14,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video Id")
     }
 
-    const video = await Video.findById({ videoId });
+    const video = await Video.findById(videoId);
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
@@ -29,7 +29,12 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     } else {
         const newLike = new Like({ video: videoId, likedBy: userId });
         await newLike.save();
-        return res.status(201).json(new ApiResponse(201, "Like added"));
+
+        const populatedLike = await Like.findById(newLike._id)
+            .populate('video', '_id title owner')
+            .populate('likedBy', 'fullName');
+
+        return res.status(201).json(new ApiResponse(201, populatedLike, "Like added"));
     }
 });
 
@@ -40,14 +45,14 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid comment Id");
     }
 
-    const comment = await Comment.findById({ commentId });
+    const comment = await Comment.findOne({ _id: commentId, deletedAt: null, video: { $exists: true } });
     if (!comment) {
         throw new ApiError(404, "Comment not found");
     }
 
     const userId = req.user?._id;
 
-    const existingLikes = await findOne({ comment: commentId, likedBy: userId });
+    const existingLikes = await Like.findOne({ comment: commentId, likedBy: userId });
 
     if (existingLikes) {
         await Like.deleteOne({ _id: existingLikes._id });
@@ -55,6 +60,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     } else {
         const newLike = new Like({ comment: commentId, likedBy: userId });
         await newLike.save();
+
+        const populatedLike = await Like.findById(newLike._id)
+            .populate('comment', '_id owner')
+            .populate('likedBy', 'fullName email');
         return res.status(201).json(new ApiResponse(201, "Like added"));
     }
 
@@ -68,7 +77,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid tweet Id");
     }
 
-    const tweet = await Tweet.findById(tweetId);
+    const tweet = await Tweet.findOne({ _id: tweetId, deletedAt: null, tweet: { $exists: true } });
     if (!tweet) {
         throw new ApiError(404, "Tweet not found");
     }
@@ -76,7 +85,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
     const userId = req.user?._id;
 
     const existingLike = await Like.findOne({ tweet: tweetId, likedBy: userId });
-    console.log(existingLike);
+
     if (existingLike) {
         await Like.deleteOne({ _id: existingLike._id });
         return res.status(200).json(new ApiResponse(200, "Like removed"));

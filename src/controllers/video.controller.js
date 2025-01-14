@@ -53,7 +53,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 from: "users", // Assuming the owner collection is named 'users'
                 localField: "owner",
                 foreignField: "_id",
-                as: "ownerDetails"
+                as: "ownerDetails",
+                pipeline: [
+                    { $project: { _id: 1, fullName: 1, email: 1 } }
+                ]
             }
         },
         { $unwind: { path: "$ownerDetails", preserveNullAndEmptyArrays: true } },
@@ -63,7 +66,18 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 metadata: [{ $count: "total" }],
                 data: [{ $skip: (pageNumber - 1) * limitNumber }, { $limit: limitNumber }]
             }
+        },
+        {
+            $project: {
+                "metadata.total": 1, // Keep metadata total
+                "data._id": 1,
+                "data.title": 1,
+                "data.description": 1,
+                "data.isPublished": 1,
+                "data.ownerDetails": 1,
+            }
         }
+
     ]);
 
     // Prepare the response
@@ -156,9 +170,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Video not found or you do not have access to it");
     }
 
+    const populatedVideo = await Video.findById(video._id).populate("owner", "fullName email");
+
     // Respond to the client
     return res.status(200).json(
-        new ApiResponse(200, video, "Fetched video for the given ID")
+        new ApiResponse(200, populatedVideo, "Fetched video for the given ID")
     );
 });
 
