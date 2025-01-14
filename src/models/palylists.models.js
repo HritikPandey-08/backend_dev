@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import { validate } from "moongose/models/user_model";
 
 const playListsSchema = new mongoose.Schema(
     {
