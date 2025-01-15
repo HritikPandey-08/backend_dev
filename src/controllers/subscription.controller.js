@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Subscription } from "../models/subscription.models.js";
+import { User } from "../models/user.models.js";
 
 const toggleSubscription = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
@@ -12,26 +13,30 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid channel id");
     }
 
+    // Check if the channel exists (assuming you have a Channel model)
+    const channelExists = await User.findById(channelId);
+    if (!channelExists) {
+        throw new ApiError(404, "Channel not found");
+    }
+
+    // Check for an existing subscription
     const existingSubscription = await Subscription.findOne({
         subscriber: userId,
         channel: channelId
     });
 
-    if (!existingSubscription) {
-        throw new ApiError(404, "Channel not found");
-    }
-
     if (existingSubscription) {
+        // If subscription exists, remove it
         await Subscription.deleteOne({ _id: existingSubscription._id });
-        return res.status(200).json(new ApiResponse(200, "subscriber removed from the channel"));
+        return res.status(200).json(new ApiResponse(200, "Subscriber removed from the channel"));
     } else {
+        // If no subscription exists, create a new one
         const newSubscriber = new Subscription({ subscriber: userId, channel: channelId });
         await newSubscriber.save();
-        return res.status(201).json(new ApiResponse(201, "Subcribered to the channel"));
+        return res.status(201).json(new ApiResponse(201, "Subscribed to the channel"));
     }
+});
 
-
-})
 
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
@@ -50,7 +55,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "users", 
+                from: "users",
                 localField: "subscriber",
                 foreignField: "_id",
                 as: "subscriberDetails",
@@ -59,7 +64,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         {
             $unwind: {
                 path: "$subscriberDetails",
-                preserveNullAndEmptyArrays: true, 
+                preserveNullAndEmptyArrays: true,
             },
         },
         {
@@ -75,6 +80,12 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         },
     ]);
 
+    if(!channelSubscribers.length) {
+        return res.status(404).json(
+            new ApiResponse(404, [], "No subscribers found")
+        );
+    }
+
     // Return response
     return res.status(200).json(
         new ApiResponse(200, channelSubscribers, "Subscribers fetched successfully")
@@ -85,33 +96,33 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params;
-    if(!isValidObjectId(subscriberId)){
-        throw new ApiError(400,"Invalid subscriber Id");
+    if (!isValidObjectId(subscriberId)) {
+        throw new ApiError(400, "Invalid subscriber Id");
     }
     const userId = req.user?._id
 
     const subscribedChannels = await Subscription.aggregate([
         {
-            $match : {
-                subscriber : new mongoose.Types.ObjectId(subscriberId)
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(subscriberId)
             }
         },
         {
-            $lookup : {
-                from : "users",
-                localField : "channel",
-                foreignField : "_id",
-                as : "channelDetails"
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "channelDetails"
             },
         },
         {
             $unwind: {
                 path: "$channelDetails",
-                preserveNullAndEmptyArrays: true, 
+                preserveNullAndEmptyArrays: true,
             },
         },
         {
-            $project : {
+            $project: {
                 _id: 0,
                 channelId: "$channel",
                 channelDetails: {
@@ -130,8 +141,8 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         );
     }
 
-     // Return response
-     return res.status(200).json(
+    // Return response
+    return res.status(200).json(
         new ApiResponse(200, subscribedChannels, "Channel fetched successfully")
     );
 })
