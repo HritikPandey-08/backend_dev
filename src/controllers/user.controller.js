@@ -3,7 +3,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { User } from "../models/user.models.js"
 import { uploadFileOnCloudinary, deleteFileFromCloudinary } from "../utils/cloudinary.js";
-
+import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 
 // Generate refresh and access token function
@@ -313,7 +313,7 @@ const updateUserDetail = asyncHandler(async (req, res) => {
 })
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
-    const coverImageLocalFile = req.file?.coverImage;
+    const coverImageLocalFile = req.file?.path;
     if (!coverImageLocalFile) {
         throw new ApiError(400, "coverImage file not found");
     }
@@ -345,7 +345,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
     return res.status(200)
         .json(new ApiResponse(200, user,
-            "Avatar image uploaded successfully"
+            "Cover image uploaded successfully"
         ))
 
 });
@@ -389,6 +389,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         ))
 
 });
+
 
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
@@ -470,40 +471,40 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
-            $match : {
-                _id : new mongoose.Types.ObjectId(req.user._id)
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
             }
         },
         {
-            $lookup : {
-                from : "videos",
-                localField : "watchHistory",
-                foreignField : "_id",
-                as : "watchHistory",
-                pipeline : [
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
                     {
-                        $lookup : {
-                            from : "users",
-                            localField : "owner",
-                            foreignField : "_id",
-                            as : "owner",
-                            pipeline : [
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
                                 {
-                                    $project : {
-                                        fullName : 1,
-                                        username : 1,
-                                        avatar : 1
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
                                     }
                                 }
                             ]
                         }
                     },
                     {
-                        $addFields : {
-                            owner : {
-                                $first : "$owner"
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
                             }
-                        } 
+                        }
                     }
                 ]
             }
@@ -511,13 +512,25 @@ const getWatchHistory = asyncHandler(async (req, res) => {
 
     ])
 
+    if (!user.length || !user[0]?.watchHistory?.length) {
+        return res.status(404)
+            .json(
+                new ApiResponse(
+                    404,
+                    [],
+                    "No watch history found"
+                )
+            )
+    }
+
+
     return res.status(200)
-    .json(
-        new ApiResponse(
-            200,
-            user[0].WatchHistory
+        .json(
+            new ApiResponse(
+                200,
+                user[0].WatchHistory
+            )
         )
-    )
 })
 
 export {
