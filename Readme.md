@@ -47,6 +47,15 @@ The server will start on the port specified in the `.env` file (default is 3000)
 ### User Routes
 - `POST /api/v1/user/register` - Register a new user
 - `POST /api/v1/user/login` - Login a user
+- `POST /api/v1/user/logout` - Logout a user
+- `POST /api/v1/user/change-password` - Change current password
+- `GET /api/v1/user/current-user` - Get current user details
+- `PATCH /api/v1/user/update-account` - Update user details
+- `PATCH /api/v1/user/avatar` - Update user avatar
+- `PATCH /api/v1/user/cover-image` - Update user cover image
+- `GET /api/v1/user/c/:username` - Get user channel profile
+- `GET /api/v1/user/history` - Get user watch history
+- `POST /api/v1/user/refresh-token` - Refresh access token
 
 ### Healthcheck Routes
 - `GET /api/v1/healthcheck` - Check the health of the server
@@ -64,10 +73,12 @@ The server will start on the port specified in the `.env` file (default is 3000)
 - `GET /api/v1/likes/videos` - Get liked videos
 
 ### Video Routes
+- `GET /api/v1/video` - Get all videos
 - `POST /api/v1/video` - Upload a new video
 - `GET /api/v1/video/:videoId` - Get video details
-- `PUT /api/v1/video/:videoId` - Update video details
 - `DELETE /api/v1/video/:videoId` - Delete a video
+- `PATCH /api/v1/video/:videoId` - Update video details
+- `PATCH /api/v1/video/toggle/publish/:videoId` - Toggle publish status of a video
 
 ### Comment Routes
 - `GET /api/v1/comment/:videoId` - Get comments on a video
@@ -113,27 +124,3 @@ backend_dev/
 │   │   ├── palylists.models.js
 │   │   ├── likes.models.js
 │   │   ├── video.models.js
-│   │   ├── comments.models.js
-│   ├── routes/
-│   │   ├── user.routes.js
-│   │   ├── healthcheck.routes.js
-│   │   ├── tweet.routes.js
-│   │   ├── like.routes.js
-│   │   ├── video.routes.js
-│   │   ├── comment.routes.js
-│   │   ├── subscription.routes.js
-│   │   ├── playlist.routes.js
-│   │   ├── dashboard.routes.js
-│   ├── utils/
-│   │   ├── asyncHandler.js
-│   │   ├── ApiResponse.js
-│   │   ├── ApiError.js
-│   ├── db/
-│   │   ├── index.js
-│   ├── app.js
-│   ├── index.js
-│   ├── constants.js
-├── .env
-├── package.json
-└── README.md
-```
